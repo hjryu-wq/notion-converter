@@ -512,11 +512,11 @@ function convert() {
     // ── 수평선 ──
     if (line.trim() === '---') { output.push('<hr>'); i++; continue; }
 
-    // ── 헤딩 ──
-    if (line.startsWith('#### ')) { output.push('<h4>' + inlineConvert(line.slice(5)) + '</h4>'); i++; continue; }
-    if (line.startsWith('### '))  { output.push('<h3>' + inlineConvert(line.slice(4)) + '</h3>'); i++; continue; }
-    if (line.startsWith('## '))   { output.push('<h2>' + inlineConvert(line.slice(3)) + '</h2>'); i++; continue; }
-    if (line.startsWith('# '))    { output.push('<h1>' + inlineConvert(line.slice(2)) + '</h1>'); i++; continue; }
+    // ── 헤딩 (볼드 변환 제외) ──
+    if (line.startsWith('#### ')) { output.push('<h4>' + headingConvert(line.slice(5)) + '</h4>'); i++; continue; }
+    if (line.startsWith('### '))  { output.push('<h3>' + headingConvert(line.slice(4)) + '</h3>'); i++; continue; }
+    if (line.startsWith('## '))   { output.push('<h2>' + headingConvert(line.slice(3)) + '</h2>'); i++; continue; }
+    if (line.startsWith('# '))    { output.push('<h1>' + headingConvert(line.slice(2)) + '</h1>'); i++; continue; }
 
     // ── 이미지 ──
     const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)(.*)$/);
@@ -576,8 +576,11 @@ function convert() {
     i++;
   }
 
-  // 연속 <br> 정리 (3개 이상 → 2개)
-  const result = output.join('\n').replace(/(<br>\n?){3,}/g, '<br>\n<br>');
+  // 연속 <br> 정리 (3개 이상 → 2개) + 탭 4개 들여쓰기
+  const tabs = '\t\t\t\t';
+  const result = output.join('\n')
+    .replace(/(<br>\n?){3,}/g, '<br>\n<br>')
+    .split('\n').map(l => tabs + l).join('\n');
 
   // 출력
   const outEl = document.getElementById('output');
@@ -603,6 +606,19 @@ function convert() {
   }
 
   showToast('변환 완료!');
+}
+
+// ── 헤딩 전용 변환 (볼드 제외) ──
+function headingConvert(text) {
+  text = escapeHtml(text);
+  // ** 마크다운 볼드는 그대로 텍스트로 유지 (strong 변환 안 함)
+  text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
+  // 링크
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+    '<a href="$2" target="blank" title="새 창 열림">$1</a>');
+  // 인라인 코드
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return text;
 }
 
 // ── 인라인 변환 ──
