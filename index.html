@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notion → HTML 변환기</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --border2: #333;
+    --text: #e8e6e1;
+    --text2: #888;
+    --text3: #555;
+    --accent: #c8f97a;
+    --accent-dim: rgba(200,249,122,0.08);
+    --accent-dim2: rgba(200,249,122,0.15);
+    --warn: #f4a261;
+    --warn-dim: rgba(244,162,97,0.1);
+    --font: 'Noto Sans KR', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --radius: 10px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-mark svg { width: 16px; height: 16px; }
+
+  .logo-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text3);
+    font-weight: 300;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge {
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-family: var(--mono);
+  }
+
+  /* ── Layout ── */
+  .workspace {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: calc(100vh - 57px);
+  }
+
+  .pane {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .pane:first-child {
+    border-right: 1px solid var(--border);
+  }
+
+  .pane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .pane-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+  }
+
+  .pane-label span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 7px;
+    position: relative;
+    top: -1px;
+  }
+
+  .pane-label .dot-in  { background: #5b9cf6; }
+  .pane-label .dot-out { background: var(--accent); }
+
+  .pane-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── Textarea ── */
+  .input-area {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+  }
+
+  textarea {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    padding: 20px;
+    caret-color: var(--accent);
+  }
+
+  textarea::placeholder {
+    color: var(--text3);
+    line-height: 2;
+  }
+
+  /* ── Output ── */
+  .output-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: var(--bg);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text2);
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .output-area.has-content { color: var(--text); }
+
+  .output-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: var(--text3);
+  }
+
+  .output-empty svg { opacity: 0.3; }
+
+  .output-empty p {
+    font-size: 13px;
+    text-align: center;
+    line-height: 1.7;
+  }
+
+  /* ── Bottom bar ── */
+  .pane-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .char-count {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+  }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 7px;
+    border: none;
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0f0f0f;
+  }
+  .btn-primary:hover { background: #d6ff8a; transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border2);
+  }
+  .btn-ghost:hover { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+
+  .btn-copy {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(200,249,122,0.2);
+  }
+  .btn-copy:hover { background: var(--accent-dim2); }
+  .btn-copy.copied { background: rgba(100,200,100,0.1); color: #6dc85a; border-color: rgba(109,200,90,0.3); }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  .toast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+  /* ── Warning chips ── */
+  .warn-bar {
+    display: none;
+    padding: 8px 20px;
+    background: var(--warn-dim);
+    border-bottom: 1px solid rgba(244,162,97,0.2);
+    font-size: 12px;
+    color: var(--warn);
+    gap: 6px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .warn-bar.visible { display: flex; }
+  .warn-bar strong { font-weight: 500; flex-shrink: 0; margin-top: 1px; }
+  .warn-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+  .warn-chip {
+    background: rgba(244,162,97,0.15);
+    border: 1px solid rgba(244,162,97,0.25);
+    padding: 1px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: var(--mono);
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16" fill="none">
+        <path d="M3 4h10M3 8h7M3 12h9" stroke="#0f0f0f" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">Notion → HTML 변환기</div>
+      <div class="logo-sub">마크다운을 붙여넣고 변환하세요</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="badge">v1.0</span>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- 입력 패널 -->
+  <div class="pane">
+    <div class="pane-header">
+      <div class="pane-label"><span class="dot-in"></span>노션 마크다운 입력</div>
+    </div>
+    <div class="input-area">
+      <textarea id="input" placeholder="노션에서 복사한 내용을 여기에 붙여넣으세요.
+
+지원 요소:
+  # 제목 (h1) — 본문에서는 사용 안 함
+  ## 헤딩1 (h2)
+  ### 헤딩2 (h3)
+  #### 헤딩3 (h4)
+  기본 본문 → body1
+  [body1_b] 단락 전체 굵은 본문
+  [body3] body3 본문
+  **인라인 볼드** → strong
+  `인라인 코드` → code
+  ```코드 블록``` → pre>code
+  --- → hr
+  [링크명](URL) → a (새 창)
+  > 인용 → blockquote
+  - 목록 / 1. 순서 목록
+  ![alt](경로) → figure>img"></textarea>
+    </div>
+    <div class="pane-footer">
+      <span class="char-count" id="charCount">0자</span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-ghost" onclick="clearInput()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <path d="M3 3l10 10M13 3L3 13"/>
+          </svg>
+          초기화
+        </button>
+        <button class="btn btn-primary" onclick="convert()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 8h9M8 4l5 4-5 4"/>
+          </svg>
+          변환하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 출력 패널 -->
+  <div class="pane">
+    <div class="pane-header">
+      <div class="pane-label"><span class="dot-out"></span>HTML 결과</div>
+      <div class="pane-actions">
+        <button class="btn btn-copy" id="copyBtn" onclick="copyOutput()" style="display:none;">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="5" width="8" height="9" rx="1.5"/>
+            <path d="M11 5V4a1 1 0 00-1-1H4a1 1 0 00-1 1v8a1 1 0 001 1h1"/>
+          </svg>
+          복사하기
+        </button>
+      </div>
+    </div>
+    <div class="warn-bar" id="warnBar">
+      <strong>⚠ 미변환 요소:</strong>
+      <div class="warn-chips" id="warnChips"></div>
+    </div>
+    <div class="output-area" id="output">
+      <div class="output-empty">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <rect x="6" y="8" width="28" height="24" rx="3" stroke="#888" stroke-width="1.5"/>
+          <path d="M12 16h16M12 21h10M12 26h13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <p>왼쪽에 노션 마크다운을 붙여넣고<br>"변환하기" 버튼을 누르세요.</p>
+      </div>
+    </div>
+    <div class="pane-footer" id="outputFooter" style="display:none;">
+      <span class="char-count" id="lineCount"></span>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-dot"></div>
+  <span id="toastMsg">클립보드에 복사됐습니다.</span>
+</div>
+
+<script>
+// ── 글자 수 카운터 ──
+const inputEl = document.getElementById('input');
+inputEl.addEventListener('input', () => {
+  document.getElementById('charCount').textContent = inputEl.value.length.toLocaleString() + '자';
+});
+
+// ── 초기화 ──
+function clearInput() {
+  inputEl.value = '';
+  document.getElementById('charCount').textContent = '0자';
+}
+
+// ── 변환 메인 ──
+function convert() {
+  const raw = inputEl.value;
+  if (!raw.trim()) { showToast('입력된 내용이 없습니다.'); return; }
+
+  const lines = raw.split('\n');
+  const output = [];
+  const warnings = new Set();
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // ── 코드 블록 (```) ──
+    if (line.startsWith('```')) {
+      const codeLang = line.slice(3).trim();
+      const codeLines = [];
+      i++;
+      while (i < lines.length && !lines[i].startsWith('```')) {
+        codeLines.push(escapeHtml(lines[i]));
+        i++;
+      }
+      // code 내 첫 번째 구문 들여쓰기 없음 → 이미 그대로 유지
+      output.push('<pre><code>' + codeLines.join('\n') + '</code></pre>');
+      i++;
+      continue;
+    }
+
+    // ── 순서 없는 목록 ──
+    if (/^(\s*)-\s/.test(line)) {
+      const listLines = [];
+      while (i < lines.length && /^(\s*)-\s/.test(lines[i])) {
+        listLines.push(lines[i]);
+        i++;
+      }
+      output.push(buildUl(listLines));
+      continue;
+    }
+
+    // ── 순서 있는 목록 ──
+    if (/^(\s*)\d+\.\s/.test(line)) {
+      const listLines = [];
+      while (i < lines.length && /^(\s*)\d+\.\s/.test(lines[i])) {
+        listLines.push(lines[i]);
+        i++;
+      }
+      output.push(buildOl(listLines));
+      continue;
+    }
+
+    // ── 인용 (Quotation) ──
+    if (line.startsWith('> ')) {
+      const quoteLines = [];
+      while (i < lines.length && lines[i].startsWith('> ')) {
+        quoteLines.push(lines[i].slice(2));
+        i++;
+      }
+      const inner = quoteLines.map(l => inlineConvert(l)).join('<br>');
+      output.push('<blockquote>' + inner + '</blockquote>');
+      continue;
+    }
+
+    // ── 빈 인용 줄 (노션 템플릿의 > 빈줄) ──
+    if (line === '>') { i++; continue; }
+
+    // ── 수평선 ──
+    if (line.trim() === '---') { output.push('<hr>'); i++; continue; }
+
+    // ── 헤딩 ──
+    if (line.startsWith('#### ')) { output.push('<h4>' + inlineConvert(line.slice(5)) + '</h4>'); i++; continue; }
+    if (line.startsWith('### '))  { output.push('<h3>' + inlineConvert(line.slice(4)) + '</h3>'); i++; continue; }
+    if (line.startsWith('## '))   { output.push('<h2>' + inlineConvert(line.slice(3)) + '</h2>'); i++; continue; }
+    if (line.startsWith('# '))    { output.push('<h1>' + inlineConvert(line.slice(2)) + '</h1>'); i++; continue; }
+
+    // ── 이미지 ──
+    const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)(.*)$/);
+    if (imgMatch) {
+      const alt = imgMatch[1], src = imgMatch[2], caption = imgMatch[3].trim();
+      if (caption) {
+        output.push('<figure>\n  <img src="' + src + '" alt="">\n  <figcaption>' + escapeHtml(caption) + '</figcaption>\n</figure>');
+      } else {
+        output.push('<figure>\n  <img src="' + src + '" alt="' + escapeHtml(alt) + '">\n</figure>');
+      }
+      i++; continue;
+    }
+
+    // ── Callout (aside) → 주석 처리 ──
+    if (line.startsWith('<aside>') || line.trim() === '<aside>') {
+      const asideLines = [line];
+      i++;
+      while (i < lines.length && !lines[i].includes('</aside>')) {
+        asideLines.push(lines[i]);
+        i++;
+      }
+      if (i < lines.length) asideLines.push(lines[i]);
+      output.push('<!-- [보류] callout:\n' + asideLines.join('\n') + '\n-->');
+      warnings.add('callout');
+      i++; continue;
+    }
+
+    // ── 테이블 → 주석 처리 ──
+    if (line.startsWith('|')) {
+      const tableLines = [];
+      while (i < lines.length && lines[i].startsWith('|')) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      output.push('<!-- [미정의] table:\n' + tableLines.join('\n') + '\n-->');
+      warnings.add('table');
+      continue;
+    }
+
+    // ── body1_b prefix ──
+    if (line.startsWith('[body1_b]')) {
+      output.push('<p class="body1_b">' + inlineConvert(line.slice(9).trim()) + '</p>');
+      i++; continue;
+    }
+
+    // ── body3 prefix ──
+    if (line.startsWith('[body3]')) {
+      output.push('<p class="body3">' + inlineConvert(line.slice(7).trim()) + '</p>');
+      i++; continue;
+    }
+
+    // ── 빈 줄 → br ──
+    if (line.trim() === '') { output.push('<br>'); i++; continue; }
+
+    // ── 기본 본문 → body1 ──
+    output.push('<p class="body1">' + inlineConvert(line) + '</p>');
+    i++;
+  }
+
+  // 연속 <br> 정리 (3개 이상 → 2개)
+  const result = output.join('\n').replace(/(<br>\n?){3,}/g, '<br>\n<br>');
+
+  // 출력
+  const outEl = document.getElementById('output');
+  outEl.textContent = result;
+  outEl.classList.add('has-content');
+
+  // 복사 버튼 표시
+  document.getElementById('copyBtn').style.display = 'inline-flex';
+
+  // 하단 줄 수 표시
+  const lineNum = output.filter(l => l !== '<br>').length;
+  document.getElementById('outputFooter').style.display = 'flex';
+  document.getElementById('lineCount').textContent = '변환된 요소 ' + lineNum + '개';
+
+  // 경고
+  const warnBar = document.getElementById('warnBar');
+  const warnChips = document.getElementById('warnChips');
+  if (warnings.size > 0) {
+    warnChips.innerHTML = [...warnings].map(w => '<span class="warn-chip">' + w + '</span>').join('');
+    warnBar.classList.add('visible');
+  } else {
+    warnBar.classList.remove('visible');
+  }
+
+  showToast('변환 완료!');
+}
+
+// ── 인라인 변환 ──
+function inlineConvert(text) {
+  text = escapeHtml(text);
+  // 링크: [텍스트](URL)
+  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+    '<a href="$2" target="blank" title="새 창 열림">$1</a>');
+  // 인라인 볼드: **텍스트**
+  text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // 인라인 코드: `코드`
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  return text;
+}
+
+// ── 순서 없는 목록 빌더 ──
+function buildUl(lines) {
+  const items = parseListItems(lines, '-');
+  return renderUl(items);
+}
+
+function renderUl(items) {
+  let html = '<ul>\n';
+  for (const item of items) {
+    if (item.children.length > 0) {
+      html += '  <li>' + inlineConvert(item.text) + '\n    ' + renderUl(item.children).replace(/\n/g, '\n    ') + '\n  </li>\n';
+    } else {
+      html += '  <li>' + inlineConvert(item.text) + '</li>\n';
+    }
+  }
+  html += '</ul>';
+  return html;
+}
+
+// ── 순서 있는 목록 빌더 ──
+function buildOl(lines) {
+  const items = parseListItems(lines, 'ol');
+  return renderOl(items);
+}
+
+function renderOl(items) {
+  let html = '<ol>\n';
+  for (const item of items) {
+    if (item.children.length > 0) {
+      html += '  <li>' + inlineConvert(item.text) + '\n    ' + renderOl(item.children).replace(/\n/g, '\n    ') + '\n  </li>\n';
+    } else {
+      html += '  <li>' + inlineConvert(item.text) + '</li>\n';
+    }
+  }
+  html += '</ol>';
+  return html;
+}
+
+// ── 목록 파싱 공통 ──
+function parseListItems(lines, type) {
+  const items = [];
+  let i = 0;
+  const isItem = (l) => type === '-' ? /^(\s*)-\s/.test(l) : /^(\s*)\d+\.\s/.test(l);
+  const getIndent = (l) => l.match(/^(\s*)/)[1].length;
+  const getText = (l) => type === '-' ? l.replace(/^\s*-\s/, '') : l.replace(/^\s*\d+\.\s/, '');
+
+  const baseIndent = getIndent(lines[0]);
+
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!isItem(line)) { i++; continue; }
+    const indent = getIndent(line);
+    if (indent > baseIndent) { i++; continue; } // 하위는 부모에서 처리
+    const text = getText(line);
+    const children = [];
+    // 다음 줄이 더 들여쓰기된 경우 → 자식
+    i++;
+    const childLines = [];
+    while (i < lines.length && isItem(lines[i]) && getIndent(lines[i]) > indent) {
+      childLines.push(lines[i]);
+      i++;
+    }
+    if (childLines.length > 0) {
+      const childItems = parseListItems(childLines, type);
+      children.push(...childItems);
+    }
+    items.push({ text, children });
+  }
+  return items;
+}
+
+// ── HTML 이스케이프 ──
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── 복사 ──
+function copyOutput() {
+  const text = document.getElementById('output').textContent;
+  if (!text || document.querySelector('.output-empty')) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.classList.add('copied');
+    btn.querySelector('span') && (btn.querySelector('span').textContent = '복사됨');
+    showToast('클립보드에 복사됐습니다.');
+    setTimeout(() => {
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+// ── 토스트 ──
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
