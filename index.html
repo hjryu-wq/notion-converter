@@ -9,27 +9,57 @@
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  /* ── 라이트 모드 (기본) ── */
   :root {
-    --bg: #0f0f0f;
-    --surface: #161616;
-    --surface2: #1e1e1e;
-    --border: #2a2a2a;
-    --border2: #333;
-    --text: #e8e6e1;
-    --text2: #888;
-    --text3: #555;
-    --accent: #c8f97a;
-    --accent-dim: rgba(200,249,122,0.08);
-    --accent-dim2: rgba(200,249,122,0.15);
-    --warn: #f4a261;
-    --warn-dim: rgba(244,162,97,0.1);
+    --bg:          #ffffff;
+    --surface:     #f5f5f4;
+    --surface2:    #ebebea;
+    --border:      #d4d4d2;
+    --border2:     #b8b8b5;
+    --text:        #1a1a18;   /* on white: 16.9:1 */
+    --text2:       #3d3d3a;   /* on white:  9.1:1 */
+    --text3:       #595956;   /* on white:  5.9:1 */
+    --accent:      #1a6b2e;   /* green, on white:  7.2:1 */
+    --accent-bg:   #e6f4ea;
+    --accent-dim:  rgba(26,107,46,0.08);
+    --accent-dim2: rgba(26,107,46,0.15);
+    --accent-text: #1a6b2e;  /* on accent-bg: 6.1:1 */
+    --warn:        #7a3f00;   /* on warn-bg:   5.2:1 */
+    --warn-bg:     #fff3e0;
+    --warn-border: rgba(122,63,0,0.2);
+    --dot-in:      #1458c2;
+    --dot-out:     #1a6b2e;
     --font: 'Noto Sans KR', sans-serif;
     --mono: 'JetBrains Mono', monospace;
-    --radius: 10px;
+  }
+
+  /* ── 다크 모드 ── */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:          #111110;
+      --surface:     #1c1c1a;
+      --surface2:    #252522;
+      --border:      #2e2e2b;
+      --border2:     #3d3d3a;
+      --text:        #f0ede8;   /* on #111: 16.1:1 */
+      --text2:       #b8b5ae;   /* on #111:  7.4:1 */
+      --text3:       #88857e;   /* on #111:  4.6:1 */
+      --accent:      #7dd87a;   /* green, on #111:  8.3:1 */
+      --accent-bg:   #1a2e1a;
+      --accent-dim:  rgba(125,216,122,0.08);
+      --accent-dim2: rgba(125,216,122,0.15);
+      --accent-text: #7dd87a;
+      --warn:        #ffb74d;   /* on #1c1c1a: 5.5:1 */
+      --warn-bg:     #2a1f0e;
+      --warn-border: rgba(255,183,77,0.2);
+      --dot-in:      #6b9fff;
+      --dot-out:     #7dd87a;
+    }
   }
 
   html, body {
     height: 100%;
+    overflow: hidden;
     background: var(--bg);
     color: var(--text);
     font-family: var(--font);
@@ -143,8 +173,8 @@
     top: -1px;
   }
 
-  .pane-label .dot-in  { background: #5b9cf6; }
-  .pane-label .dot-out { background: var(--accent); }
+  .pane-label .dot-in  { background: var(--dot-in); }
+  .pane-label .dot-out { background: var(--dot-out); }
 
   .pane-actions {
     display: flex;
@@ -247,13 +277,17 @@
     white-space: nowrap;
   }
 
-  .btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 
   .btn-primary {
     background: var(--accent);
-    color: #0f0f0f;
+    color: #ffffff;
   }
-  .btn-primary:hover { background: #d6ff8a; transform: translateY(-1px); }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
   .btn-primary:active { transform: translateY(0); }
 
   .btn-ghost {
@@ -265,11 +299,11 @@
 
   .btn-copy {
     background: var(--accent-dim);
-    color: var(--accent);
-    border: 1px solid rgba(200,249,122,0.2);
+    color: var(--accent-text);
+    border: 1px solid var(--accent-dim2);
   }
   .btn-copy:hover { background: var(--accent-dim2); }
-  .btn-copy.copied { background: rgba(100,200,100,0.1); color: #6dc85a; border-color: rgba(109,200,90,0.3); }
+  .btn-copy.copied { background: var(--accent-dim2); color: var(--accent-text); }
 
   /* ── Toast ── */
   .toast {
@@ -301,8 +335,8 @@
   .warn-bar {
     display: none;
     padding: 8px 20px;
-    background: var(--warn-dim);
-    border-bottom: 1px solid rgba(244,162,97,0.2);
+    background: var(--warn-bg);
+    border-bottom: 1px solid var(--warn-border);
     font-size: 12px;
     color: var(--warn);
     gap: 6px;
@@ -313,8 +347,9 @@
   .warn-bar strong { font-weight: 500; flex-shrink: 0; margin-top: 1px; }
   .warn-chips { display: flex; gap: 5px; flex-wrap: wrap; }
   .warn-chip {
-    background: rgba(244,162,97,0.15);
-    border: 1px solid rgba(244,162,97,0.25);
+    background: var(--warn-border);
+    border: 1px solid var(--warn-border);
+    color: var(--warn);
     padding: 1px 8px;
     border-radius: 20px;
     font-size: 11px;
@@ -325,6 +360,28 @@
   ::-webkit-scrollbar { width: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── Tab option ── */
+  .tab-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text3);
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .tab-option:hover { color: var(--text2); border-color: var(--border2); }
+  .tab-option input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 13px;
+    height: 13px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -396,15 +453,6 @@
   <div class="pane">
     <div class="pane-header">
       <div class="pane-label"><span class="dot-out"></span>HTML 결과</div>
-      <div class="pane-actions">
-        <button class="btn btn-copy" id="copyBtn" onclick="copyOutput()" style="display:none;">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="5" y="5" width="8" height="9" rx="1.5"/>
-            <path d="M11 5V4a1 1 0 00-1-1H4a1 1 0 00-1 1v8a1 1 0 001 1h1"/>
-          </svg>
-          복사하기
-        </button>
-      </div>
     </div>
     <div class="warn-bar" id="warnBar">
       <strong>⚠ 미변환 요소:</strong>
@@ -419,8 +467,27 @@
         <p>왼쪽에 노션 마크다운을 붙여넣고<br>"변환하기" 버튼을 누르세요.</p>
       </div>
     </div>
-    <div class="pane-footer" id="outputFooter" style="display:none;">
+    <div class="pane-footer">
       <span class="char-count" id="lineCount"></span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <label class="tab-option" id="tabOption">
+          <input type="checkbox" id="tabCheck" checked>
+          <span>탭 4개</span>
+        </label>
+        <button class="btn btn-copy" id="copyBtn" onclick="copyOutput()" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="5" width="8" height="9" rx="1.5"/>
+            <path d="M11 5V4a1 1 0 00-1-1H4a1 1 0 00-1 1v8a1 1 0 001 1h1"/>
+          </svg>
+          복사하기
+        </button>
+        <button class="btn btn-ghost" id="downloadBtn" onclick="downloadOutput()" disabled>
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 2v8M5 7l3 3 3-3M3 13h10"/>
+          </svg>
+          다운로드
+        </button>
+      </div>
     </div>
   </div>
 
@@ -576,23 +643,27 @@ function convert() {
     i++;
   }
 
-  // 연속 <br> 정리 (3개 이상 → 2개) + 탭 4개 들여쓰기
-  const tabs = '\t\t\t\t';
-  const result = output.join('\n')
-    .replace(/(<br>\n?){3,}/g, '<br>\n<br>')
-    .split('\n').map(l => tabs + l).join('\n');
+  // 연속 <br> 정리 (3개 이상 → 2개)
+  let result = output.join('\n').replace(/(<br>\n?){3,}/g, '<br>\n<br>');
+
+  // 탭 4개 옵션 적용
+  const useTab = document.getElementById('tabCheck').checked;
+  if (useTab) {
+    const tabs = '\t\t\t\t';
+    result = result.split('\n').map(l => tabs + l).join('\n');
+  }
 
   // 출력
   const outEl = document.getElementById('output');
   outEl.textContent = result;
   outEl.classList.add('has-content');
 
-  // 복사 버튼 표시
-  document.getElementById('copyBtn').style.display = 'inline-flex';
+  // 버튼 활성화
+  document.getElementById('copyBtn').disabled = false;
+  document.getElementById('downloadBtn').disabled = false;
 
   // 하단 줄 수 표시
   const lineNum = output.filter(l => l !== '<br>').length;
-  document.getElementById('outputFooter').style.display = 'flex';
   document.getElementById('lineCount').textContent = '변환된 요소 ' + lineNum + '개';
 
   // 경고
@@ -624,13 +695,16 @@ function headingConvert(text) {
 // ── 인라인 변환 ──
 function inlineConvert(text) {
   text = escapeHtml(text);
-  // 링크: [텍스트](URL)
+  // 마크다운 링크: [텍스트](URL) — 먼저 처리
   text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
     '<a href="$2" target="blank" title="새 창 열림">$1</a>');
   // 인라인 볼드: **텍스트**
   text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   // 인라인 코드: `코드`
   text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // URL 자동 탐지: 마크다운 링크로 이미 변환된 부분 제외하고 남은 https?://... 처리
+  text = text.replace(/(?<!href=&quot;)(?<!&quot;>)(https?:\/\/[^\s<&"]+)/g,
+    '<a href="$1" target="blank" title="새 창 열림">$1</a>');
   return text;
 }
 
@@ -714,19 +788,41 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+// ── 현재 결과 텍스트 가져오기 (탭 옵션 반영) ──
+function getResult() {
+  return document.getElementById('output').textContent;
+}
+
 // ── 복사 ──
 function copyOutput() {
-  const text = document.getElementById('output').textContent;
+  const text = getResult();
   if (!text || document.querySelector('.output-empty')) return;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.getElementById('copyBtn');
     btn.classList.add('copied');
-    btn.querySelector('span') && (btn.querySelector('span').textContent = '복사됨');
     showToast('클립보드에 복사됐습니다.');
-    setTimeout(() => {
-      btn.classList.remove('copied');
-    }, 2000);
+    setTimeout(() => btn.classList.remove('copied'), 2000);
   });
+}
+
+// ── 다운로드 ──
+function downloadOutput() {
+  const text = getResult();
+  if (!text) return;
+
+  // h1 텍스트 추출해서 파일명으로 사용
+  const h1Match = inputEl.value.match(/^#\s+(.+)$/m);
+  const rawTitle = h1Match ? h1Match[1].replace(/\*\*([^*]+)\*\*/g, '$1').trim() : 'converted';
+  const fileName = rawTitle.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_') + '.html';
+
+  const blob = new Blob([text], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('파일을 다운로드했습니다.');
 }
 
 // ── 토스트 ──
