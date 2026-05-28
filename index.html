@@ -376,6 +376,123 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 
+  /* ── Image toolbar ── */
+  .img-toolbar {
+    flex-shrink: 0;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .img-toolbar-btns {
+    display: flex;
+    gap: 6px;
+    padding: 8px 16px;
+  }
+
+  .img-toggle-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+  }
+
+  .img-form {
+    padding: 10px 16px 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .img-form-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    margin-bottom: 2px;
+  }
+
+  .img-form-close {
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .img-form-close:hover { color: var(--text); }
+
+  .img-form-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .img-form-label {
+    font-size: 11px;
+    color: var(--text3);
+    white-space: nowrap;
+    width: 44px;
+    flex-shrink: 0;
+  }
+
+  .img-input {
+    flex: 1;
+    height: 30px;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 0 10px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    min-width: 0;
+  }
+
+  .img-input:focus { border-color: var(--accent); }
+  .img-input::placeholder { color: var(--text3); }
+
+  .img-path-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    overflow: hidden;
+    min-width: 0;
+    transition: border-color 0.15s;
+  }
+  .img-path-wrap:focus-within { border-color: var(--accent); }
+
+  .img-path-prefix {
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text3);
+    background: var(--surface2);
+    padding: 0 8px;
+    height: 30px;
+    line-height: 30px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border2);
+  }
+
+  .img-input-file {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    flex: 1;
+    min-width: 0;
+  }
+  .img-input-file:focus { border-color: transparent; }
+
   /* ── Tab option ── */
   .tab-option {
     display: inline-flex;
@@ -445,6 +562,52 @@
   - 목록 / 1. 순서 목록
   ![alt](경로) → figure>img"></textarea>
     </div>
+
+    <!-- 이미지 보조 UI -->
+    <div class="img-toolbar">
+      <div class="img-toolbar-btns">
+        <button class="btn btn-ghost img-toggle-btn" onclick="toggleImgForm('single')">1단 이미지 추가</button>
+        <button class="btn btn-ghost img-toggle-btn" onclick="toggleImgForm('grid')">2단 이미지 추가</button>
+      </div>
+
+      <!-- 1단 폼 -->
+      <div class="img-form" id="formSingle" style="display:none;">
+        <div class="img-form-title">
+          <span>1단 이미지</span>
+          <button class="img-form-close" onclick="toggleImgForm('single')">✕</button>
+        </div>
+        <div class="img-form-row">
+          <input class="img-input" id="s_src" placeholder="파일명.jpg (필수)">
+          <input class="img-input" id="s_alt" placeholder="alt 텍스트">
+          <input class="img-input" id="s_cap" placeholder="캡션 (선택 — 입력 시 alt 공란)">
+          <button class="btn btn-primary" onclick="insertSingle()">삽입</button>
+        </div>
+      </div>
+
+      <!-- 2단 폼 -->
+      <div class="img-form" id="formGrid" style="display:none;">
+        <div class="img-form-title">
+          <span>2단 이미지</span>
+          <button class="img-form-close" onclick="toggleImgForm('grid')">✕</button>
+        </div>
+        <div class="img-form-row">
+          <span class="img-form-label">이미지 1</span>
+          <input class="img-input" id="g_src1" placeholder="파일명.jpg (필수)">
+          <input class="img-input" id="g_alt1" placeholder="alt">
+          <input class="img-input" id="g_cap1" placeholder="캡션 (선택)">
+        </div>
+        <div class="img-form-row">
+          <span class="img-form-label">이미지 2</span>
+          <input class="img-input" id="g_src2" placeholder="파일명.jpg (필수)">
+          <input class="img-input" id="g_alt2" placeholder="alt">
+          <input class="img-input" id="g_cap2" placeholder="캡션 (선택)">
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="btn btn-primary" onclick="insertGrid()">삽입</button>
+        </div>
+      </div>
+    </div>
+
     <div class="pane-footer">
       <span class="char-count" id="charCount">0자</span>
       <div style="display:flex;gap:6px;">
@@ -503,6 +666,72 @@ inputEl.addEventListener('input', () => {
 function clearInput() {
   inputEl.value = '';
   document.getElementById('charCount').textContent = '0자';
+}
+
+// ── 이미지 보조 UI 토글 ──
+function toggleImgForm(type) {
+  const single = document.getElementById('formSingle');
+  const grid   = document.getElementById('formGrid');
+  if (type === 'single') {
+    const isOpen = single.style.display !== 'none';
+    single.style.display = isOpen ? 'none' : 'flex';
+    grid.style.display = 'none';
+  } else {
+    const isOpen = grid.style.display !== 'none';
+    grid.style.display = isOpen ? 'none' : 'flex';
+    single.style.display = 'none';
+  }
+}
+
+// ── 커서 위치에 텍스트 삽입 ──
+function insertAtCursor(text) {
+  const el = inputEl;
+  const start = el.selectionStart;
+  const end   = el.selectionEnd;
+  const before = el.value.substring(0, start);
+  const after  = el.value.substring(end);
+  const prefix = before.length > 0 && !before.endsWith('\n') ? '\n' : '';
+  el.value = before + prefix + text + '\n' + after;
+  const pos = before.length + prefix.length + text.length + 1;
+  el.setSelectionRange(pos, pos);
+  el.focus();
+  document.getElementById('charCount').textContent = el.value.length.toLocaleString() + '자';
+}
+
+const IMG_BASE = '/img/contents/';
+
+// ── 1단 이미지 삽입 ──
+function insertSingle() {
+  const file = document.getElementById('s_src').value.trim();
+  const alt  = document.getElementById('s_alt').value.trim();
+  const cap  = document.getElementById('s_cap').value.trim();
+  if (!file) { showToast('파일명을 입력하세요.'); return; }
+  const src = IMG_BASE + file;
+  const md = cap ? '![](' + src + ') ' + cap : '![' + alt + '](' + src + ')';
+  insertAtCursor(md);
+  ['s_src','s_alt','s_cap'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('formSingle').style.display = 'none';
+  showToast('1단 이미지가 삽입됐습니다.');
+}
+
+// ── 2단 이미지 삽입 ──
+function insertGrid() {
+  const file1 = document.getElementById('g_src1').value.trim();
+  const alt1  = document.getElementById('g_alt1').value.trim();
+  const cap1  = document.getElementById('g_cap1').value.trim();
+  const file2 = document.getElementById('g_src2').value.trim();
+  const alt2  = document.getElementById('g_alt2').value.trim();
+  const cap2  = document.getElementById('g_cap2').value.trim();
+  if (!file1 || !file2) { showToast('두 이미지 파일명을 모두 입력하세요.'); return; }
+  const src1 = IMG_BASE + file1;
+  const src2 = IMG_BASE + file2;
+  const img1 = cap1 ? '![](' + src1 + ') ' + cap1 : '![' + alt1 + '](' + src1 + ')';
+  const img2 = cap2 ? '![](' + src2 + ') ' + cap2 : '![' + alt2 + '](' + src2 + ')';
+  const md = '[grid]\n' + img1 + '\n' + img2 + '\n[/grid]';
+  insertAtCursor(md);
+  ['g_src1','g_alt1','g_cap1','g_src2','g_alt2','g_cap2'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('formGrid').style.display = 'none';
+  showToast('2단 이미지가 삽입됐습니다.');
 }
 
 // ── 변환 메인 ──
@@ -578,6 +807,29 @@ function convert() {
     if (line.startsWith('### '))  { output.push('<h3>' + headingConvert(line.slice(4)) + '</h3>'); i++; continue; }
     if (line.startsWith('## '))   { output.push('<h2>' + headingConvert(line.slice(3)) + '</h2>'); i++; continue; }
     if (line.startsWith('# '))    { output.push('<h1>' + headingConvert(line.slice(2)) + '</h1>'); i++; continue; }
+
+    // ── 2단 이미지 [grid] 블록 ──
+    if (line.trim() === '[grid]') {
+      const imgLines = [];
+      i++;
+      while (i < lines.length && lines[i].trim() !== '[/grid]') {
+        imgLines.push(lines[i]);
+        i++;
+      }
+      i++; // [/grid] 건너뜀
+      const figures = imgLines.map(l => {
+        const m = l.match(/^!\[([^\]]*)\]\(([^)]+)\)(.*)$/);
+        if (!m) return '';
+        const alt = m[1], src = m[2], cap = m[3].trim();
+        if (cap) {
+          return '    <figure>\n        <img src="' + src + '" alt="">\n        <figcaption>' + escapeHtml(cap) + '</figcaption>\n    </figure>';
+        } else {
+          return '    <figure>\n        <img src="' + src + '" alt="' + escapeHtml(alt) + '">\n        <figcaption></figcaption>\n    </figure>';
+        }
+      }).filter(Boolean).join('\n');
+      output.push('<div class="grid">\n' + figures + '\n</div>');
+      continue;
+    }
 
     // ── 이미지 ──
     const imgMatch = line.match(/^!\[([^\]]*)\]\(([^)]+)\)(.*)$/);
