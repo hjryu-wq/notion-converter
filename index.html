@@ -546,10 +546,10 @@
       <textarea id="input" placeholder="노션에서 복사한 내용을 여기에 붙여넣으세요.
 
 지원 요소:
-  # 제목 (h1) — 본문에서는 사용 안 함
-  ## 헤딩1 (h2)
-  ### 헤딩2 (h3)
-  #### 헤딩3 (h4)
+  # 제목 (h2) — 본문 최상위 헤딩
+  ## 헤딩 (h3)
+  ### 헤딩 (h4)
+  #### 미정의 (주석 처리)
   기본 본문 → body1
   [body1_b] 단락 전체 굵은 본문
   [body3] body3 본문
@@ -803,10 +803,14 @@ function convert() {
     if (line.trim() === '---') { output.push('<hr>'); i++; continue; }
 
     // ── 헤딩 (볼드 변환 제외) ──
-    if (line.startsWith('#### ')) { output.push('<h4>' + headingConvert(line.slice(5)) + '</h4>'); i++; continue; }
-    if (line.startsWith('### '))  { output.push('<h3>' + headingConvert(line.slice(4)) + '</h3>'); i++; continue; }
-    if (line.startsWith('## '))   { output.push('<h2>' + headingConvert(line.slice(3)) + '</h2>'); i++; continue; }
-    if (line.startsWith('# '))    { output.push('<h1>' + headingConvert(line.slice(2)) + '</h1>'); i++; continue; }
+    if (line.startsWith('#### ')) {
+      output.push('<!-- [미정의] h5 불가: ' + line.slice(5) + ' -->');
+      warnings.add('####(h5 없음)');
+      i++; continue;
+    }
+    if (line.startsWith('### '))  { output.push('<h4>' + headingConvert(line.slice(4)) + '</h4>'); i++; continue; }
+    if (line.startsWith('## '))   { output.push('<h3>' + headingConvert(line.slice(3)) + '</h3>'); i++; continue; }
+    if (line.startsWith('# '))    { output.push('<h2>' + headingConvert(line.slice(2)) + '</h2>'); i++; continue; }
 
     // ── 2단 이미지 [grid] 블록 ──
     if (line.trim() === '[grid]') {
