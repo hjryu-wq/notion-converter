@@ -568,6 +568,19 @@
       <div class="img-toolbar-btns">
         <button class="btn btn-ghost img-toggle-btn" onclick="toggleImgForm('single')">1단 이미지 추가</button>
         <button class="btn btn-ghost img-toggle-btn" onclick="toggleImgForm('grid')">2단 이미지 추가</button>
+        <button class="btn btn-ghost img-toggle-btn" onclick="toggleImgForm('audio')">오디오 추가</button>
+      </div>
+
+      <!-- 오디오 폼 -->
+      <div class="img-form" id="formAudio" style="display:none;">
+        <div class="img-form-title">
+          <span>오디오</span>
+          <button class="img-form-close" onclick="toggleImgForm('audio')">✕</button>
+        </div>
+        <div class="img-form-row">
+          <input class="img-input" id="a_src" placeholder="파일명.mp3 (필수)">
+          <button class="btn btn-primary" onclick="insertAudio()">삽입</button>
+        </div>
       </div>
 
       <!-- 1단 폼 -->
@@ -672,15 +685,12 @@ function clearInput() {
 function toggleImgForm(type) {
   const single = document.getElementById('formSingle');
   const grid   = document.getElementById('formGrid');
-  if (type === 'single') {
-    const isOpen = single.style.display !== 'none';
-    single.style.display = isOpen ? 'none' : 'flex';
-    grid.style.display = 'none';
-  } else {
-    const isOpen = grid.style.display !== 'none';
-    grid.style.display = isOpen ? 'none' : 'flex';
-    single.style.display = 'none';
-  }
+  const audio  = document.getElementById('formAudio');
+  const all = { single, grid, audio };
+  const target = all[type];
+  const isOpen = target.style.display !== 'none';
+  Object.values(all).forEach(f => f.style.display = 'none');
+  if (!isOpen) target.style.display = 'flex';
 }
 
 // ── 커서 위치에 텍스트 삽입 ──
@@ -734,7 +744,16 @@ function insertGrid() {
   showToast('2단 이미지가 삽입됐습니다.');
 }
 
-// ── 변환 메인 ──
+// ── 오디오 삽입 ──
+function insertAudio() {
+  const file = document.getElementById('a_src').value.trim();
+  if (!file) { showToast('파일명을 입력하세요.'); return; }
+  const md = '[audio]' + file + '[/audio]';
+  insertAtCursor(md);
+  document.getElementById('a_src').value = '';
+  document.getElementById('formAudio').style.display = 'none';
+  showToast('오디오가 삽입됐습니다.');
+}
 function convert() {
   const raw = inputEl.value;
   if (!raw.trim()) { showToast('입력된 내용이 없습니다.'); return; }
@@ -746,6 +765,14 @@ function convert() {
   let i = 0;
   while (i < lines.length) {
     const line = lines[i];
+
+    // ── 오디오 [audio] ──
+    if (line.startsWith('[audio]') && line.endsWith('[/audio]')) {
+      const file = line.slice(7, -8).trim();
+      const src = '/audio/contents/' + file;
+      output.push('<audio controls controlsList="nodownload">\n  <source src="' + src + '" type="audio/mpeg">\n  사용 중인 브라우저가 오디오 태그를 지원하지 않습니다.\n</audio>');
+      i++; continue;
+    }
 
     // ── 코드 블록 (```) ──
     if (line.startsWith('```')) {
