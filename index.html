@@ -1204,7 +1204,15 @@ function renderTable(type, grid) {
     return '            <tr>\n' + cells + '\n            </tr>';
   }).join('\n');
 
+  const colCount = grid[0] ? grid[0].length : 0;
+  const colgroup = '        <colgroup>\n' +
+    '            <col style="width: 120px">\n' +
+    Array(Math.max(0, colCount - 1)).fill('            <col>').join('\n') +
+    (colCount > 1 ? '\n' : '') +
+    '        </colgroup>\n';
+
   return '<div class="table">\n    <table>\n        <caption>캡션 입력</caption>\n' +
+    colgroup +
     thead +
     '        <tbody>\n' + tbodyRows + '\n        </tbody>\n    </table>\n</div>';
 }
