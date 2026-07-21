@@ -206,6 +206,7 @@
   textarea {
     width: 100%;
     height: 100%;
+    box-sizing: border-box;
     background: var(--bg);
     color: var(--text);
     border: none;
@@ -236,6 +237,12 @@
     color: var(--text2);
     white-space: pre-wrap;
     word-break: break-all;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .output-area > textarea {
+    flex: 1;
   }
 
   .output-area.has-content { color: var(--text); }
@@ -245,6 +252,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    flex: 1;
     height: 100%;
     gap: 12px;
     color: var(--text3);
@@ -337,14 +345,16 @@
     transition: all 0.2s ease;
     z-index: 100;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
+    max-width: 480px;
   }
   .toast.show {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
-  .toast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .toast-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 5px; }
+  #toastMsg { white-space: pre-line; line-height: 1.6; }
 
   /* ── Warning chips ── */
   .warn-bar {
@@ -649,6 +659,19 @@
         <button class="btn btn-ghost img-toggle-btn" onclick="toggleImgForm('grid')">2단 이미지 추가</button>
         <button class="btn btn-ghost img-toggle-btn" onclick="toggleImgForm('audio')">오디오 추가</button>
         <button class="btn btn-ghost img-toggle-btn" onclick="toggleImgForm('table')">표 추가</button>
+        <button class="btn btn-ghost img-toggle-btn" onclick="toggleLinkForm()">링크 추가</button>
+      </div>
+
+      <!-- 링크 폼 -->
+      <div class="img-form" id="formLink" style="display:none;">
+        <div class="img-form-title">
+          <span>링크 삽입 (<span id="linkSelectedText">선택된 텍스트 없음</span>)</span>
+          <button class="img-form-close" onclick="toggleLinkForm(true)">✕</button>
+        </div>
+        <div class="img-form-row">
+          <input class="img-input" id="link_url" placeholder="https:// URL 입력 (필수)">
+          <button class="btn btn-primary" onclick="insertLink()">삽입</button>
+        </div>
       </div>
 
       <!-- 표 폼 -->
@@ -748,20 +771,13 @@
     <div class="pane-header">
       <div class="pane-label"><span class="dot-out"></span>HTML 결과</div>
     </div>
-    <div class="warn-bar" id="warnBar">
-      <strong>⚠ 미변환 요소:</strong>
-      <div class="warn-chips" id="warnChips"></div>
-    </div>
-    <div class="output-area" id="outputWrap" style="padding:0;">
-      <div class="output-empty" id="outputEmpty">
+    <div class="output-area" id="outputWrap" style="padding:0;"><div class="output-empty" id="outputEmpty">
         <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
           <rect x="6" y="8" width="28" height="24" rx="3" stroke="#888" stroke-width="1.5"/>
           <path d="M12 16h16M12 21h10M12 26h13" stroke="#888" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
         <p>왼쪽에 노션 마크다운을 붙여넣고<br>"변환하기" 버튼을 누르세요.</p>
-      </div>
-      <textarea id="output" style="display:none;width:100%;height:100%;background:var(--bg);color:var(--text);border:none;outline:none;resize:none;font-family:var(--mono);font-size:13px;line-height:1.8;padding:20px;"></textarea>
-    </div>
+      </div><textarea id="output" style="display:none;width:100%;height:100%;box-sizing:border-box;background:var(--bg);color:var(--text);border:none;outline:none;resize:none;font-family:var(--mono);font-size:13px;line-height:1.8;padding:20px;"></textarea></div>
     <div class="pane-footer">
       <span class="char-count" id="lineCount"></span>
       <div style="display:flex;align-items:center;gap:6px;">
@@ -802,12 +818,81 @@ function toggleImgForm(type) {
   const grid   = document.getElementById('formGrid');
   const audio  = document.getElementById('formAudio');
   const table  = document.getElementById('formTable');
+  const link   = document.getElementById('formLink');
   const all = { single, grid, audio, table };
   const target = all[type];
   const isOpen = target.style.display !== 'none';
   Object.values(all).forEach(f => f.style.display = 'none');
+  link.style.display = 'none';
   if (!isOpen) target.style.display = 'flex';
 }
+
+// ── 링크 삽입: 선택 구간 기억 ──
+let linkSelStart = null;
+let linkSelEnd = null;
+
+function toggleLinkForm(forceClose) {
+  const single = document.getElementById('formSingle');
+  const grid   = document.getElementById('formGrid');
+  const audio  = document.getElementById('formAudio');
+  const table  = document.getElementById('formTable');
+  const link   = document.getElementById('formLink');
+
+  if (forceClose) {
+    link.style.display = 'none';
+    return;
+  }
+
+  const start = inputEl.selectionStart;
+  const end   = inputEl.selectionEnd;
+  if (start === end) {
+    showToast('먼저 링크로 만들 텍스트를 선택하세요.');
+    return;
+  }
+
+  linkSelStart = start;
+  linkSelEnd = end;
+  const selectedText = inputEl.value.substring(start, end);
+  document.getElementById('linkSelectedText').textContent =
+    selectedText.length > 20 ? selectedText.slice(0, 20) + '…' : selectedText;
+
+  [single, grid, audio, table].forEach(f => f.style.display = 'none');
+  link.style.display = 'flex';
+  document.getElementById('link_url').value = '';
+  document.getElementById('link_url').focus();
+}
+
+function insertLink() {
+  const url = document.getElementById('link_url').value.trim();
+  if (!url) { showToast('URL을 입력하세요.'); return; }
+  if (linkSelStart === null || linkSelEnd === null) {
+    showToast('선택된 텍스트 정보가 없습니다. 다시 선택해주세요.');
+    return;
+  }
+  const selectedText = inputEl.value.substring(linkSelStart, linkSelEnd);
+  const before = inputEl.value.substring(0, linkSelStart);
+  const after  = inputEl.value.substring(linkSelEnd);
+  const md = '[' + selectedText + '](' + url + ')';
+  inputEl.value = before + md + after;
+
+  const pos = before.length + md.length;
+  inputEl.setSelectionRange(pos, pos);
+  inputEl.focus();
+  document.getElementById('charCount').textContent = inputEl.value.length.toLocaleString() + '자';
+
+  toggleLinkForm(true);
+  linkSelStart = null;
+  linkSelEnd = null;
+  showToast('링크가 삽입됐습니다.');
+}
+
+// ── 단축키: 텍스트 선택 후 Ctrl/Cmd+K ──
+inputEl.addEventListener('keydown', (e) => {
+  const isShortcut = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k';
+  if (!isShortcut) return;
+  e.preventDefault();
+  toggleLinkForm();
+});
 
 // ── 커서 위치에 텍스트 삽입 ──
 function insertAtCursor(text) {
@@ -1141,6 +1226,9 @@ function convert() {
   // 연속 <br> 정리 (3개 이상 → 2개)
   let result = output.join('\n').replace(/(<br>\n?){3,}/g, '<br>\n<br>');
 
+  // 결과 맨 앞/뒤에 남은 <br> 제거 (상단/하단 불필요한 공백 방지)
+  result = result.replace(/^(<br>\n?)+/, '').replace(/(<br>\n?)+$/, '');
+
   // 탭 4개 옵션 적용
   const useTab = document.getElementById('tabCheck').checked;
   if (useTab) {
@@ -1163,17 +1251,12 @@ function convert() {
   const lineNum = output.filter(l => l !== '<br>').length;
   document.getElementById('lineCount').textContent = '변환된 요소 ' + lineNum + '개';
 
-  // 경고
-  const warnBar = document.getElementById('warnBar');
-  const warnChips = document.getElementById('warnChips');
+  // 경고: 미변환 요소가 있으면 하나의 토스트에 줄바꿈으로 모아 표시, 없으면 완료 토스트
   if (warnings.size > 0) {
-    warnChips.innerHTML = [...warnings].map(w => '<span class="warn-chip">' + w + '</span>').join('');
-    warnBar.classList.add('visible');
+    showToast([...warnings].join('\n') + ' 등 미변환 요소가 있습니다.', 4000);
   } else {
-    warnBar.classList.remove('visible');
+    showToast('변환 완료!');
   }
-
-  showToast('변환 완료!');
 }
 
 // ── 표 렌더링 (h: 가로형 / v: 세로형 / x: 교차형) ──
@@ -1228,8 +1311,8 @@ function headingConvert(text) {
   text = escapeHtml(text);
   // ** 마크다운 볼드는 그대로 텍스트로 유지 (strong 변환 안 함)
   text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
-  // 링크
-  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+  // 링크: 링크 텍스트 안에 대괄호가 중첩돼도([[텍스트]](URL)) 마지막 ](URL) 지점을 기준으로 매칭
+  text = text.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+|[^\s)]+)\)/g,
     '<a href="$2" target="blank" title="새 창 열림">$1</a>');
   // 인라인 코드
   text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
@@ -1239,16 +1322,23 @@ function headingConvert(text) {
 // ── 인라인 변환 ──
 function inlineConvert(text) {
   text = escapeHtml(text);
-  // 마크다운 링크: [텍스트](URL) — 먼저 처리
-  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="blank" title="새 창 열림">$1</a>');
+  // 마크다운 링크: [텍스트](URL) — 먼저 처리. 링크 텍스트 안에 대괄호가 중첩돼도([[텍스트]](URL)) 처리되도록 non-greedy로 매칭
+  // 완성된 <a> 태그를 임시 토큰으로 치환해두어, 이후 URL 자동 탐지가 이 태그 내부를 다시 건드리지 않도록 보호한다.
+  const linkTokens = [];
+  text = text.replace(/\[(.+?)\]\((https?:\/\/[^\s)]+|[^\s)]+)\)/g, (match, linkText, url) => {
+    const token = '\u0000LINK' + linkTokens.length + '\u0000';
+    linkTokens.push('<a href="' + url + '" target="blank" title="새 창 열림">' + linkText + '</a>');
+    return token;
+  });
   // 인라인 볼드: **텍스트**
   text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   // 인라인 코드: `코드`
   text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-  // URL 자동 탐지: 마크다운 링크로 이미 변환된 부분 제외하고 남은 https?://... 처리
-  text = text.replace(/(?<!href=&quot;)(?<!&quot;>)(https?:\/\/[^\s<&"]+)/g,
+  // URL 자동 탐지: 마크다운 링크(위에서 토큰으로 보호됨)를 제외한 남은 https?://... 처리
+  text = text.replace(/(https?:\/\/[^\s<&"]+)/g,
     '<a href="$1" target="blank" title="새 창 열림">$1</a>');
+  // 보호해둔 마크다운 링크 토큰을 원래 <a> 태그로 복원
+  text = text.replace(/\u0000LINK(\d+)\u0000/g, (match, idx) => linkTokens[Number(idx)]);
   return text;
 }
 
@@ -1409,11 +1499,11 @@ function downloadOutput() {
 }
 
 // ── 토스트 ──
-function showToast(msg) {
+function showToast(msg, duration) {
   const toast = document.getElementById('toast');
   document.getElementById('toastMsg').textContent = msg;
   toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2200);
+  setTimeout(() => toast.classList.remove('show'), duration || 2200);
 }
 </script>
 </body>
