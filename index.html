@@ -610,6 +610,10 @@
   </div>
 </header>
 
+<div class="title-field-wrap" style="padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface);">
+  <input type="text" id="titleInput" class="img-input" placeholder="제목 (파일명으로 사용됩니다)" style="width:100%;height:36px;">
+</div>
+
 <div class="workspace">
 
   <!-- 입력 패널 -->
@@ -766,6 +770,7 @@
           <span>탭 추가하기</span>
         </label>
         <button class="btn btn-copy" id="copyBtn" onclick="copyOutput()" disabled>복사하기</button>
+        <button class="btn btn-ghost" id="previewBtn" onclick="openPreview()" disabled>미리보기</button>
         <button class="btn btn-ghost" id="downloadBtn" onclick="downloadOutput()" disabled>다운로드</button>
       </div>
     </div>
@@ -1151,6 +1156,7 @@ function convert() {
 
   // 버튼 활성화
   document.getElementById('copyBtn').disabled = false;
+  document.getElementById('previewBtn').disabled = false;
   document.getElementById('downloadBtn').disabled = false;
 
   // 하단 줄 수 표시
@@ -1331,6 +1337,41 @@ function getResult() {
   return document.getElementById('output').value;
 }
 
+// ── 미리보기 (실제 사이트 스타일 적용, 새 창) ──
+const PREVIEW_CSS_URL = 'https://snclab.kr/css/style.css';
+
+function openPreview() {
+  const html = getResult();
+  if (!html) return;
+
+  const previewDoc = '<!DOCTYPE html>\n' +
+    '<html lang="ko">\n' +
+    '<head>\n' +
+    '<meta charset="UTF-8">\n' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+    '<title>콘텐츠 미리보기</title>\n' +
+    '<link rel="stylesheet" href="' + PREVIEW_CSS_URL + '">\n' +
+    '<style>\n' +
+    '  body{ background:#fff; }\n' +
+    '  #contents_view{ width:100%; max-width:736px; margin:0 auto; padding:0; }\n' +
+    '</style>\n' +
+    '</head>\n' +
+    '<body>\n' +
+    '<div id="contents_view">\n' +
+    '  <div id="contents_viewer">\n' +
+    html + '\n' +
+    '  </div>\n' +
+    '</div>\n' +
+    '</body>\n' +
+    '</html>';
+
+  const win = window.open('', '_blank');
+  if (!win) { showToast('팝업이 차단되었습니다. 팝업 차단을 해제해주세요.'); return; }
+  win.document.open();
+  win.document.write(previewDoc);
+  win.document.close();
+}
+
 // ── 복사 ──
 function copyOutput() {
   const text = getResult();
@@ -1348,9 +1389,13 @@ function downloadOutput() {
   const text = getResult();
   if (!text) return;
 
-  // h1 텍스트 추출해서 파일명으로 사용
-  const h1Match = inputEl.value.match(/^#\s+(.+)$/m);
-  const rawTitle = h1Match ? h1Match[1].replace(/\*\*([^*]+)\*\*/g, '$1').trim() : 'converted';
+  // 제목 입력칸 값을 우선 사용, 없으면 본문 '# 제목'에서 추출
+  const titleFieldVal = document.getElementById('titleInput').value.trim();
+  let rawTitle = titleFieldVal;
+  if (!rawTitle) {
+    const h1Match = inputEl.value.match(/^#\s+(.+)$/m);
+    rawTitle = h1Match ? h1Match[1].replace(/\*\*([^*]+)\*\*/g, '$1').trim() : 'converted';
+  }
   const fileName = rawTitle.replace(/[\\/:*?"<>|]/g, '').replace(/\s+/g, '_') + '.html';
 
   const blob = new Blob([text], { type: 'text/html;charset=utf-8' });
